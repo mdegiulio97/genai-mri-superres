@@ -1,0 +1,20 @@
+{
+  "dataset": "bloodmnist",
+  "model": "espcn",
+  "hr_size": 64,
+  "scale": 2,
+  "n_test": 1000,
+  "sr": {
+    "psnr": 36.6497007182652,
+    "ssim": 0.9622800025324139
+  },
+  "bicubic": {
+    "psnr": 34.47491277085364,
+    "ssim": 0.9506077743168659
+  },
+  "delta": {
+    "psnr": 2.1747879474115592,
+    "ssim": 0.01167222821554792
+  },
+  "sr_beats_bicubic": true
+}
