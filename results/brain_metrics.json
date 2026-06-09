@@ -1,0 +1,25 @@
+{
+  "dataset": {
+    "accession": "ds007116",
+    "name": "Penn LEAD",
+    "license": "CC0",
+    "modality": "T1w (brain MRI)",
+    "train_subject": "sub-19861",
+    "test_subject": "sub-138950 (held-out)"
+  },
+  "scale": 2,
+  "n_test_slices": 32,
+  "espcn": {
+    "psnr": 28.158387855394256,
+    "ssim": 0.9271022583876913
+  },
+  "bicubic": {
+    "psnr": 27.633897392393397,
+    "ssim": 0.9201321712559705
+  },
+  "delta": {
+    "psnr": 0.5244904630008591,
+    "ssim": 0.00697008713172087
+  },
+  "sr_beats_bicubic": true
+}

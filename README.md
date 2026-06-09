@@ -96,6 +96,34 @@ automaticamente da `scripts/evaluate.py` (`results/metrics.json`).
 > gradiente resta vivo). Un test di regressione (`tests/test_pipeline.py`)
 > riproduce il guasto offline e ne previene il ritorno.
 
+## Track MRI cerebrale reale (OpenNeuro ds007116, CC0)
+
+Oltre al benchmark MedMNIST, il progetto applica la super-risoluzione a **MRI
+cerebrale T1w reale** (OpenNeuro **ds007116** "Penn LEAD", CC0). Le immagini HR
+sono slice di volumi T1w reali; la degradazione HR→LR resta simulata (bicubica),
+come standard nei lavori di SR. Il training è su un soggetto e la valutazione su un
+**soggetto held-out** (mai visto), per misurare la generalizzazione cross-soggetto.
+
+```bash
+uv run python scripts/download_brain.py     # ~15 MB da S3 (dati gitignorati)
+uv run python scripts/evaluate_brain.py     # ESPCN vs bicubico → results/brain_*
+```
+
+Numeri reali da `results/brain_metrics.json` (soggetto held-out sub-138950, 32 slice
+176×192, ×2, ESPCN 40 epoche su CPU):
+
+| Metodo | PSNR (dB) | SSIM |
+|---|---|---|
+| Bicubico | 27.63 | 0.9201 |
+| **ESPCN (SR)** | **28.16** | **0.9271** |
+| **Δ (SR − bicubico)** | **+0.52** | **+0.0070** |
+
+Su anatomia cerebrale reale e su un soggetto mai visto la SR **batte** comunque la
+bicubica su entrambe le metriche; il guadagno è più contenuto del benchmark
+MedMNIST — onesto, vista la generalizzazione cross-soggetto e l'allenamento su un
+solo cervello. Figure: `results/brain_examples.png`, `results/brain_psnr_hist.png`.
+Report con citazioni: [`report/brain_superres.md`](report/brain_superres.md).
+
 ## Test
 
 ```bash
