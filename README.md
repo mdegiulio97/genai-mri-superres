@@ -136,6 +136,23 @@ scaricano MedMNIST. Verificano shape di degradazione/ricostruzione, forward dei
 modelli, PSNR alto per immagini identiche, riduzione della loss in training e
 robustezza dello smoke test dell'app Streamlit.
 
+## Sviluppo
+
+Per comodità è incluso un `Makefile` che raccoglie i comandi più frequenti. I
+target sono semplici **scorciatoie** dei comandi `uv` documentati sopra (non
+introducono logica nuova): richiedono `make` e `uv` installati.
+
+| Comando       | Scorciatoia di                              | Descrizione                                             |
+|---------------|---------------------------------------------|--------------------------------------------------------|
+| `make help`   | —                                           | Elenca i target disponibili (default).                 |
+| `make setup`  | `uv sync --extra dev`                       | Installa le dipendenze di runtime e di sviluppo.       |
+| `make data`   | `uv run python scripts/download_data.py`    | Scarica il dataset BloodMNIST (idempotente).           |
+| `make train`  | `uv run python scripts/train.py`            | Addestra il modello ESPCN → `results/model.pt`.        |
+| `make test`   | `uv run pytest -q`                          | Esegue la suite di test offline.                       |
+| `make lint`   | `uv run ruff check .`                        | Esegue il linter ruff sul progetto.                    |
+| `make app`    | `uv run streamlit run app/main.py`          | Avvia la demo interattiva Streamlit.                   |
+| `make all`    | `setup` + `lint` + `test`                   | Prepara l'ambiente ed esegue lint e test in sequenza.  |
+
 ## Riferimenti
 
 1. Shi et al., *Real-Time Single Image and Video Super-Resolution Using an
