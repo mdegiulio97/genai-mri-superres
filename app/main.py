@@ -1,11 +1,11 @@
-"""App Streamlit: demo di super-risoluzione SR vs bicubica.
+"""Streamlit app: super-resolution demo, SR vs bicubic.
 
-Mostra, per un'immagine di test:
-  LR in input -> SR (rete) vs bicubica, confronto affiancato + PSNR/SSIM.
+For one test image it shows:
+  LR input -> SR (network) vs bicubic, side-by-side comparison + PSNR/SSIM.
 
-Per restare leggera al primo render NON esegue training. Carica il checkpoint
-``results/model.pt`` solo su richiesta (bottone) e tramite cache. Se il
-checkpoint manca, mostra un messaggio e si ferma con ``st.stop()``.
+To keep the first render light it does NOT train. It loads the checkpoint
+``results/model.pt`` only on request (button) and through a cache. If the
+checkpoint is missing, it shows a message and stops with ``st.stop()``.
 """
 
 from __future__ import annotations
@@ -28,16 +28,16 @@ from srmri.model import build_model  # noqa: E402
 CKPT = ROOT / "results" / "model.pt"
 
 st.set_page_config(page_title="GenAI MRI Super-Resolution", layout="wide")
-st.title("Super-risoluzione di immagini mediche — SR (rete) vs bicubica")
+st.title("Medical image super-resolution — SR (network) vs bicubic")
 st.caption(
-    "Rete generativa compatta (ESPCN/SRCNN) addestrata su MedMNIST v2. "
-    "Confronto image-to-image contro la baseline bicubica."
+    "Compact generative network (ESPCN/SRCNN) trained on MedMNIST v2 BloodMNIST "
+    "(blood-cell microscopy). Image-to-image comparison against the bicubic baseline."
 )
 
 
 @st.cache_resource(show_spinner=False)
 def load_model():
-    """Carica il checkpoint addestrato (cache). Ritorna (model, meta) o None."""
+    """Load the trained checkpoint (cached). Returns (model, meta) or None."""
     if not CKPT.exists():
         return None
     ckpt = torch.load(CKPT, map_location="cpu")
@@ -49,7 +49,7 @@ def load_model():
 
 @st.cache_data(show_spinner=False)
 def get_sample(flag: str, hr_size: int, scale: int, idx: int) -> torch.Tensor:
-    """Restituisce un'immagine HR di test. Fallback sintetico se offline."""
+    """Return one HR test image. Falls back to synthetic data when offline."""
     try:
         hr = load_hr_split("test", flag=flag, hr_size=hr_size, download=True)
     except Exception:
@@ -61,8 +61,8 @@ def get_sample(flag: str, hr_size: int, scale: int, idx: int) -> torch.Tensor:
 loaded = load_model()
 if loaded is None:
     st.warning(
-        "Checkpoint `results/model.pt` non trovato. Esegui prima "
-        "`uv run python scripts/train.py --epochs 30` per addestrare il modello."
+        "Checkpoint `results/model.pt` not found. First run "
+        "`uv run python scripts/train.py --epochs 30` to train the model."
     )
     st.stop()
 
@@ -71,12 +71,12 @@ scale = ckpt["scale"]
 hr_size = ckpt["hr_size"]
 flag = ckpt["flag"]
 
-st.sidebar.header("Parametri")
-idx = st.sidebar.slider("Indice immagine di test", 0, 200, 0)
-st.sidebar.write(f"Modello: **{ckpt['model'].upper()}**")
-st.sidebar.write(f"Dataset: **{flag}**, HR **{hr_size}×{hr_size}**, scala **×{scale}**")
+st.sidebar.header("Parameters")
+idx = st.sidebar.slider("Test image index", 0, 200, 0)
+st.sidebar.write(f"Model: **{ckpt['model'].upper()}**")
+st.sidebar.write(f"Dataset: **{flag}**, HR **{hr_size}×{hr_size}**, scale **×{scale}**")
 
-if st.button("Esegui super-risoluzione", type="primary"):
+if st.button("Run super-resolution", type="primary"):
     hr = get_sample(flag, hr_size, scale, idx)
     lr = downsample(hr, scale=scale)
     with torch.no_grad():
@@ -86,17 +86,17 @@ if st.button("Esegui super-risoluzione", type="primary"):
     col1, col2, col3, col4 = st.columns(4)
     col1.image(lr[0, 0].numpy(), caption=f"LR input ({lr.shape[-1]}×{lr.shape[-2]})",
                clamp=True, use_container_width=True)
-    col2.image(bic[0, 0].numpy(), caption="Bicubica", clamp=True, use_container_width=True)
-    col3.image(sr[0, 0].numpy(), caption="SR (rete)", clamp=True, use_container_width=True)
+    col2.image(bic[0, 0].numpy(), caption="Bicubic", clamp=True, use_container_width=True)
+    col3.image(sr[0, 0].numpy(), caption="SR (network)", clamp=True, use_container_width=True)
     col4.image(hr[0, 0].numpy(), caption="HR (target)", clamp=True, use_container_width=True)
 
-    st.subheader("Metriche (vs HR target)")
+    st.subheader("Metrics (vs HR target)")
     m1, m2 = st.columns(2)
-    m1.metric("PSNR bicubica", f"{psnr(bic, hr):.2f} dB")
-    m1.metric("PSNR SR (rete)", f"{psnr(sr, hr):.2f} dB",
+    m1.metric("PSNR bicubic", f"{psnr(bic, hr):.2f} dB")
+    m1.metric("PSNR SR (network)", f"{psnr(sr, hr):.2f} dB",
               delta=f"{psnr(sr, hr) - psnr(bic, hr):+.2f} dB")
-    m2.metric("SSIM bicubica", f"{ssim(bic, hr):.4f}")
-    m2.metric("SSIM SR (rete)", f"{ssim(sr, hr):.4f}",
+    m2.metric("SSIM bicubic", f"{ssim(bic, hr):.4f}")
+    m2.metric("SSIM SR (network)", f"{ssim(sr, hr):.4f}",
               delta=f"{ssim(sr, hr) - ssim(bic, hr):+.4f}")
 else:
-    st.info("Premi **Esegui super-risoluzione** per generare il confronto.")
+    st.info("Press **Run super-resolution** to generate the comparison.")

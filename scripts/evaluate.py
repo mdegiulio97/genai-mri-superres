@@ -1,10 +1,10 @@
-"""Valuta SR vs bicubica sul test set: metrics.json + figure.
+"""Evaluate SR vs bicubic on the test set: metrics.json + figures.
 
-Esempio:
+Example:
     uv run python scripts/evaluate.py
 
-Produce:
-    results/metrics.json          (PSNR/SSIM di SR e bicubica + delta)
+Produces:
+    results/metrics.json          (PSNR/SSIM of SR and bicubic + delta)
     results/examples_before_after.png
     results/psnr_histogram.png
 """
@@ -38,7 +38,7 @@ def _load_checkpoint(device: torch.device):
     ckpt_path = RESULTS / "model.pt"
     if not ckpt_path.exists():
         raise FileNotFoundError(
-            f"Checkpoint mancante: {ckpt_path}. Esegui prima scripts/train.py."
+            f"Missing checkpoint: {ckpt_path}. Run scripts/train.py first."
         )
     ckpt = torch.load(ckpt_path, map_location=device)
     model = build_model(ckpt["model"], scale=ckpt["scale"], channels=ckpt["channels"])
@@ -49,7 +49,7 @@ def _load_checkpoint(device: torch.device):
 
 @torch.no_grad()
 def _collect(model, loader, scale, device):
-    """Ritorna (sr, bic, hr) concatenati sul test set."""
+    """Return (sr, bic, hr) concatenated over the test set."""
     srs, bics, hrs = [], [], []
     for lr, hr in loader:
         lr = lr.to(device)
@@ -62,7 +62,7 @@ def _collect(model, loader, scale, device):
 def _fig_examples(sr, bic, hr, path: Path, n: int = 5) -> None:
     n = min(n, sr.size(0))
     fig, axes = plt.subplots(4, n, figsize=(2.2 * n, 9))
-    err = (sr - hr).abs()  # mappa di errore assoluto SR
+    err = (sr - hr).abs()  # SR absolute error map
     for j in range(n):
         axes[0, j].imshow(bic[j, 0], cmap="gray", vmin=0, vmax=1)
         axes[1, j].imshow(sr[j, 0], cmap="gray", vmin=0, vmax=1)
@@ -71,10 +71,10 @@ def _fig_examples(sr, bic, hr, path: Path, n: int = 5) -> None:
         for r in range(4):
             axes[r, j].set_xticks([])
             axes[r, j].set_yticks([])
-    labels = ["Bicubica", "SR (rete)", "HR (target)", "|SR - HR|"]
+    labels = ["Bicubic", "SR (network)", "HR (target)", "|SR - HR|"]
     for r, lab in enumerate(labels):
         axes[r, 0].set_ylabel(lab, fontsize=11)
-    fig.suptitle("Super-risoluzione: confronto before/after", fontsize=13)
+    fig.suptitle("Super-resolution: before/after comparison", fontsize=13)
     fig.tight_layout()
     fig.savefig(path, dpi=120)
     plt.close(fig)
@@ -87,13 +87,13 @@ def _fig_psnr_hist(sr_psnr: np.ndarray, bic_psnr: np.ndarray, path: Path) -> Non
         max(sr_psnr.max(), bic_psnr.max()) + 1,
         40,
     )
-    ax.hist(bic_psnr, bins=bins, alpha=0.6, label=f"Bicubica (μ={bic_psnr.mean():.2f} dB)")
-    ax.hist(sr_psnr, bins=bins, alpha=0.6, label=f"SR rete (μ={sr_psnr.mean():.2f} dB)")
+    ax.hist(bic_psnr, bins=bins, alpha=0.6, label=f"Bicubic (μ={bic_psnr.mean():.2f} dB)")
+    ax.hist(sr_psnr, bins=bins, alpha=0.6, label=f"SR network (μ={sr_psnr.mean():.2f} dB)")
     ax.axvline(bic_psnr.mean(), color="C0", ls="--")
     ax.axvline(sr_psnr.mean(), color="C1", ls="--")
-    ax.set_xlabel("PSNR per immagine (dB)")
-    ax.set_ylabel("Conteggio")
-    ax.set_title("Distribuzione del PSNR sul test set: SR vs bicubica")
+    ax.set_xlabel("Per-image PSNR (dB)")
+    ax.set_ylabel("Count")
+    ax.set_title("PSNR distribution on the test set: SR vs bicubic")
     ax.legend()
     fig.tight_layout()
     fig.savefig(path, dpi=120)
@@ -144,9 +144,9 @@ def main() -> None:
     _fig_psnr_hist(sr_psnr, bic_psnr, RESULTS / "psnr_histogram.png")
 
     print(json.dumps(metrics, indent=2, ensure_ascii=False))
-    verdict = "SI" if metrics["sr_beats_bicubic"] else "NO"
-    print(f"\nLa rete SR batte la bicubica (PSNR e SSIM)? {verdict}")
-    print(f"Artefatti salvati in {RESULTS}")
+    verdict = "YES" if metrics["sr_beats_bicubic"] else "NO"
+    print(f"\nDoes the SR network beat bicubic (PSNR and SSIM)? {verdict}")
+    print(f"Artifacts saved to {RESULTS}")
 
 
 if __name__ == "__main__":

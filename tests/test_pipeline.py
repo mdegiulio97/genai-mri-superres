@@ -1,6 +1,6 @@
-"""Test offline e veloci della pipeline di super-risoluzione.
+"""Fast offline tests of the super-resolution pipeline.
 
-Usano SOLO tensori sintetici: nessun download di MedMNIST.
+They use ONLY synthetic tensors: no MedMNIST download.
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ def test_downsample_upsample_shapes():
     assert lr.shape == (4, 1, 16, 16)
     back = upsample(lr, scale=2)
     assert back.shape == (4, 1, 32, 32)
-    # range preservato in [0,1]
+    # range preserved in [0,1]
     assert lr.min() >= 0.0 and lr.max() <= 1.0
 
 
@@ -67,12 +67,12 @@ def test_build_model_factory():
     except ValueError:
         pass
     else:
-        raise AssertionError("Atteso ValueError per modello sconosciuto")
+        raise AssertionError("Expected ValueError for unknown model")
 
 
 def test_psnr_identical_is_high():
     hr = fake_hr_dataset(n=4, hr_size=32)
-    # immagini identiche -> PSNR molto alto
+    # identical images -> very high PSNR
     assert psnr(hr, hr) > 60.0
     assert ssim(hr, hr) > 0.99
 
@@ -82,7 +82,7 @@ def test_psnr_per_image_length():
     noisy = (hr + 0.05 * torch.randn_like(hr)).clamp(0, 1)
     vals = psnr_per_image(noisy, hr)
     assert vals.shape == (5,)
-    assert (vals < 60).all()  # con rumore il PSNR scende
+    assert (vals < 60).all()  # with noise the PSNR drops
 
 
 def test_bicubic_sr_matches_upsample():
@@ -99,20 +99,20 @@ def test_training_reduces_loss():
     out = train(model, train_loader, epochs=12, lr=1e-3, device=device)
     losses = out["history"]["train_loss"]
     assert len(losses) == 12
-    # la loss finale deve essere sensibilmente inferiore a quella iniziale
+    # the final loss must be lower than the initial one
     assert losses[-1] < losses[0]
 
 
-# Config "di stress" che riproduce offline il dying-ReLU: batch grande (64) e HR
-# 64 con learning rate elevato facevano morire tutte le ReLU del feature
-# extractor (residuo nullo -> la rete eguagliava ma non superava la bicubica).
-# Con LeakyReLU il gradiente resta vivo e la rete supera la bicubica.
+# "Stress" config that reproduces dying ReLU offline: a large batch (64) and HR
+# 64 with a high learning rate killed every ReLU in the feature extractor
+# (zero residual -> the network matched but did not beat bicubic).
+# With LeakyReLU the gradient stays alive and the network beats bicubic.
 _STRESS = dict(n_train=256, n_test=64, hr_size=64, scale=2, batch_size=64)
 
 
 def test_trained_model_beats_bicubic_under_stress_lr():
-    """Regressione dying-ReLU: con lr elevato la rete deve comunque SUPERARE la
-    bicubica. Col vecchio ReLU le feature morivano e il delta era ~0 (fail)."""
+    """Dying-ReLU regression: with a high lr the network must still BEAT
+    bicubic. With the old ReLU the features died and the delta was ~0 (fail)."""
     device = get_device("cpu")
     train_loader, test_loader = fake_loaders(batch_size=_STRESS["batch_size"],
                                              n_train=_STRESS["n_train"],
@@ -132,8 +132,8 @@ def test_trained_model_beats_bicubic_under_stress_lr():
 
 
 def test_residual_is_nontrivial_under_stress_lr():
-    """Il residuo appreso (output - bicubica) non deve collassare a zero: è la
-    firma diretta del dying-ReLU (residuo ~1e-4)."""
+    """The learned residual (output - bicubic) must not collapse to zero: that
+    is the direct signature of dying ReLU (residual ~1e-4)."""
     device = get_device("cpu")
     train_loader, test_loader = fake_loaders(batch_size=_STRESS["batch_size"],
                                              n_train=_STRESS["n_train"],
@@ -145,4 +145,4 @@ def test_residual_is_nontrivial_under_stress_lr():
     lr, _ = next(iter(test_loader))
     with torch.no_grad():
         residual = (model(lr) - bicubic_sr(lr, scale=2)).abs().mean().item()
-    assert residual > 1e-3, f"residuo collassato a zero (mean|res|={residual:.2e})"
+    assert residual > 1e-3, f"residual collapsed to zero (mean|res|={residual:.2e})"

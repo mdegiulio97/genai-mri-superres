@@ -1,9 +1,9 @@
-"""Caricamento di slice 2D da MRI cerebrale REALE (NIfTI) per la super-risoluzione.
+"""Loading of 2D slices from REAL brain MRI (NIfTI) for super-resolution.
 
-A differenza del track sintetico/MedMNIST, qui le immagini ad alta risoluzione
-(HR) sono slice di volumi T1w cerebrali reali. La degradazione HR->LR resta
-simulata (bicubica), come nella letteratura SR: il valore aggiunto è applicare e
-valutare la rete su anatomia cerebrale reale.
+Unlike the synthetic/MedMNIST track, here the high-resolution (HR) images are
+slices of real T1w brain volumes. The HR->LR degradation is still simulated
+(bicubic), as in the SR literature: the added value is applying and evaluating
+the network on real brain anatomy.
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ import torch
 
 
 def _crop_even(arr: np.ndarray, scale: int) -> np.ndarray:
-    """Ritaglia (centrato) H e W al multiplo di ``scale`` più vicino per difetto."""
+    """Center-crop H and W down to the nearest multiple of ``scale``."""
     h, w = arr.shape[-2:]
     h2 = h - (h % scale)
     w2 = w - (w % scale)
@@ -26,7 +26,7 @@ def _crop_even(arr: np.ndarray, scale: int) -> np.ndarray:
 
 
 def _center_crop(arr: np.ndarray, size: int) -> np.ndarray:
-    """Ritaglio centrato a (size, size); se la slice è più piccola, la lascia com'è."""
+    """Center crop to (size, size); if the slice is smaller, leave it as is."""
     h, w = arr.shape[-2:]
     ch, cw = min(size, h), min(size, w)
     top = (h - ch) // 2
@@ -43,19 +43,20 @@ def load_brain_slices(
     pmax: float = 99.0,
     crop_size: int | None = None,
 ) -> torch.Tensor:
-    """Estrae slice 2D normalizzate da un volume T1w cerebrale.
+    """Extract normalized 2D slices from a T1w brain volume.
 
     Args:
-        nifti_path:    percorso del NIfTI 3D.
-        axis:          asse lungo cui affettare (default 2).
-        max_slices:    numero massimo di slice da restituire (campionate uniformemente).
-        min_foreground: frazione minima di pixel "tessuto" (>0.1 del max) per tenere
-                        una slice; scarta quelle quasi vuote.
-        scale:         fattore di super-risoluzione; H,W ritagliate a multipli di scale.
-        pmax:          percentile usato per normalizzare l'intensità in [0, 1].
+        nifti_path:    path to the 3D NIfTI file.
+        axis:          axis along which to slice (default 2).
+        max_slices:    maximum number of slices to return (uniformly sampled).
+        min_foreground: minimum fraction of "tissue" pixels (>0.1 of max) needed
+                        to keep a slice; nearly empty slices are discarded.
+        scale:         super-resolution factor; H,W are cropped to multiples of scale.
+        pmax:          percentile used to normalize intensity to [0, 1].
+        crop_size:     optional center-crop size applied before the even crop.
 
     Returns:
-        Tensore float32 (N, 1, H, W) in [0, 1].
+        float32 tensor (N, 1, H, W) in [0, 1].
     """
     vol = np.asanyarray(nib.load(str(nifti_path)).dataobj, dtype=np.float64)
     pos = vol[vol > 0]
@@ -70,7 +71,7 @@ def load_brain_slices(
         if (vol[:, :, s] > 0.1).mean() >= min_foreground
     ]
     if not kept:
-        raise ValueError("Nessuna slice con tessuto sufficiente: controlla axis/min_foreground.")
+        raise ValueError("No slice with enough tissue: check axis/min_foreground.")
 
     if len(kept) > max_slices:
         idx = np.linspace(0, len(kept) - 1, max_slices).round().astype(int)

@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2026 Michele De Giulio
+Copyright (c) 2026 Michele Maria De Giulio
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,13 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----------------------------------------------------------------------------
-Nota sui dataset
----------------------------------------------------------------------------
-Questo progetto utilizza il dataset MedMNIST v2 (Yang et al., Scientific Data
-2023, DOI 10.1038/s41597-022-01721-8), distribuito sotto licenza
-Creative Commons Attribution 4.0 International (CC BY 4.0). I dati NON sono
-inclusi in questo repository: vengono scaricati a runtime tramite la libreria
-`medmnist`. L'uso dei dati è soggetto ai termini della licenza CC BY 4.0 e alle
-condizioni indicate dagli autori originali.

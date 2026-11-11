@@ -1,8 +1,8 @@
-"""Metriche di qualità per la super-risoluzione: PSNR e SSIM.
+"""Quality metrics for super-resolution: PSNR and SSIM.
 
-Accettano tensori PyTorch float in [0, 1] (C, H, W) o (N, C, H, W) e si
-appoggiano a ``skimage.metrics`` per coerenza con la letteratura. Le immagini
-sono convertite in numpy in modo trasparente.
+They accept PyTorch float tensors in [0, 1] (C, H, W) or (N, C, H, W) and rely
+on ``skimage.metrics`` for consistency with the literature. Images are
+converted to numpy transparently.
 """
 
 from __future__ import annotations
@@ -17,21 +17,21 @@ def _to_numpy(x: torch.Tensor) -> np.ndarray:
 
 
 def _iter_images(x: np.ndarray):
-    """Itera su immagini (H, W) a partire da array (C,H,W) o (N,C,H,W).
+    """Iterate over (H, W) images from a (C,H,W) or (N,C,H,W) array.
 
-    Per immagini multicanale si converte a singolo canale facendo la media
-    sui canali (il task qui è in scala di grigi, quindi C tipicamente = 1).
+    Multi-channel images are converted to a single channel by averaging over
+    channels (the task here is grayscale, so C is typically 1).
     """
     if x.ndim == 3:
         x = x[None, ...]  # -> (1, C, H, W)
     if x.ndim != 4:
-        raise ValueError(f"Atteso array 3D o 4D, ricevuto {x.shape}")
+        raise ValueError(f"Expected a 3D or 4D array, got {x.shape}")
     for img in x:  # (C, H, W)
         yield img.mean(axis=0)  # (H, W)
 
 
 def psnr(pred: torch.Tensor, target: torch.Tensor) -> float:
-    """PSNR medio (dB) tra ``pred`` e ``target`` su range dati in [0, 1]."""
+    """Mean PSNR (dB) between ``pred`` and ``target`` for data range [0, 1]."""
     p = _to_numpy(pred)
     t = _to_numpy(target)
     vals = [
@@ -42,7 +42,7 @@ def psnr(pred: torch.Tensor, target: torch.Tensor) -> float:
 
 
 def ssim(pred: torch.Tensor, target: torch.Tensor) -> float:
-    """SSIM medio tra ``pred`` e ``target`` (immagini in scala di grigi)."""
+    """Mean SSIM between ``pred`` and ``target`` (grayscale images)."""
     p = _to_numpy(pred)
     t = _to_numpy(target)
     vals = []
@@ -57,7 +57,7 @@ def ssim(pred: torch.Tensor, target: torch.Tensor) -> float:
 
 
 def psnr_per_image(pred: torch.Tensor, target: torch.Tensor) -> np.ndarray:
-    """PSNR per ogni immagine del batch (utile per istogrammi)."""
+    """PSNR for each image in the batch (useful for histograms)."""
     p = _to_numpy(pred)
     t = _to_numpy(target)
     return np.array(

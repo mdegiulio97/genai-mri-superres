@@ -1,13 +1,13 @@
-"""Reti generative compatte per super-risoluzione image-to-image.
+"""Compact generative networks for image-to-image super-resolution.
 
-- :class:`ESPCN` (default): Shi et al., CVPR 2016 (arXiv:1609.05158). Le feature
-  sono estratte a risoluzione LR e l'upscaling avviene SOLO alla fine tramite
-  sub-pixel convolution (``PixelShuffle``), il che la rende efficiente.
-  L'input è l'immagine LR (H, W); l'output è (H*scale, W*scale).
+- :class:`ESPCN` (default): Shi et al., CVPR 2016 (arXiv:1609.05158). Features
+  are extracted at LR resolution and upscaling happens ONLY at the end through
+  sub-pixel convolution (``PixelShuffle``), which makes it efficient.
+  The input is the LR image (H, W); the output is (H*scale, W*scale).
 
 - :class:`SRCNN`: Dong et al., TPAMI 2016 (DOI 10.1109/TPAMI.2015.2439281).
-  Lavora su un'immagine GIÀ upscalata bicubicamente (stessa risoluzione
-  dell'output) e ne raffina i dettagli ad alta frequenza.
+  Works on an image ALREADY upscaled bicubically (same resolution as the
+  output) and refines its high-frequency details.
 """
 
 from __future__ import annotations
@@ -19,28 +19,28 @@ from .degrade import upsample
 
 
 class ESPCN(nn.Module):
-    """Efficient Sub-Pixel CNN per upscaling ``scale``.
+    """Efficient Sub-Pixel CNN for ``scale`` upscaling.
 
-    Variante con **apprendimento residuo** rispetto alla baseline bicubica: le
-    feature sono estratte a risoluzione LR e la sub-pixel convolution
-    (``PixelShuffle``) genera un residuo ad alta frequenza che viene **sommato**
-    all'upscaling bicubico. Questo è uno schema ben consolidato nei lavori di SR
-    (es. VDSR, Kim et al. CVPR 2016) e rende il training più stabile: la rete
-    parte di fatto dalla qualità bicubica e impara solo le correzioni, così non
-    può degradare la baseline.
+    Variant with **residual learning** with respect to the bicubic baseline:
+    features are extracted at LR resolution and the sub-pixel convolution
+    (``PixelShuffle``) produces a high-frequency residual that is **added** to
+    the bicubic upscaling. This is a well-established scheme in SR work
+    (e.g. VDSR, Kim et al. CVPR 2016) and makes training more stable: the
+    network effectively starts from bicubic quality and learns only the
+    corrections, so it cannot degrade the baseline.
 
-    L'ultimo strato è inizializzato a zero affinché all'inizio l'output coincida
-    con l'interpolazione bicubica.
+    The last layer is initialized to zero so that, at the start, the output
+    equals the bicubic interpolation.
 
-    Si usa ``LeakyReLU`` (anziché ReLU) nel feature extractor: senza
-    normalizzazione e con l'ultimo strato a zero, le ReLU classiche tendono a
-    "morire" (attivazioni a zero, gradiente nullo, residuo costantemente nullo →
-    la rete eguaglia ma non supera la bicubica). La pendenza negativa non nulla
-    mantiene vivo il gradiente e rende il training robusto al learning rate.
+    ``LeakyReLU`` (instead of ReLU) is used in the feature extractor: without
+    normalization and with a zero-initialized last layer, plain ReLUs tend to
+    "die" (zero activations, zero gradient, residual stuck at zero -> the
+    network matches but does not beat bicubic). The non-zero negative slope
+    keeps the gradient alive and makes training robust to the learning rate.
 
     Args:
-        scale: fattore di upscaling (2 o 4).
-        channels: numero di canali immagine (1 per scala di grigi).
+        scale: upscaling factor (2 or 4).
+        channels: number of image channels (1 for grayscale).
     """
 
     def __init__(self, scale: int = 2, channels: int = 1) -> None:
@@ -55,27 +55,27 @@ class ESPCN(nn.Module):
             nn.Conv2d(64, 32, kernel_size=3, padding=1),
             nn.LeakyReLU(negative_slope=0.1, inplace=True),
         )
-        # Proietta su channels * scale^2 canali, poi riorganizza con PixelShuffle.
+        # Project to channels * scale^2 channels, then rearrange with PixelShuffle.
         self.sub_pixel_conv = nn.Conv2d(
             32, channels * scale * scale, kernel_size=3, padding=1
         )
         self.shuffle = nn.PixelShuffle(scale)
-        # Inizializzazione a zero: residuo nullo all'avvio -> output = bicubica.
+        # Zero initialization: zero residual at start -> output = bicubic.
         nn.init.zeros_(self.sub_pixel_conv.weight)
         nn.init.zeros_(self.sub_pixel_conv.bias)
 
     def forward(self, lr: torch.Tensor) -> torch.Tensor:
-        base = upsample(lr, scale=self.scale)  # baseline bicubica (HR)
+        base = upsample(lr, scale=self.scale)  # bicubic baseline (HR)
         x = self.features(lr)
         residual = self.shuffle(self.sub_pixel_conv(x))
         return (base + residual).clamp(0.0, 1.0)
 
 
 class SRCNN(nn.Module):
-    """SRCNN: raffina un'immagine pre-upscalata bicubicamente.
+    """SRCNN: refines an image pre-upscaled with bicubic interpolation.
 
-    Il forward accetta l'immagine LR e fa internamente l'upscaling bicubico,
-    così l'interfaccia (LR -> HR) è identica a ESPCN.
+    The forward pass takes the LR image and performs the bicubic upscaling
+    internally, so the interface (LR -> HR) is the same as ESPCN.
     """
 
     def __init__(self, scale: int = 2, channels: int = 1) -> None:
@@ -92,16 +92,16 @@ class SRCNN(nn.Module):
 
     def forward(self, lr: torch.Tensor) -> torch.Tensor:
         up = upsample(lr, scale=self.scale)
-        # Connessione residua: la rete predice il dettaglio sopra la bicubica.
+        # Residual connection: the network predicts the detail on top of bicubic.
         out = up + self.body(up)
         return out.clamp(0.0, 1.0)
 
 
 def build_model(name: str = "espcn", scale: int = 2, channels: int = 1) -> nn.Module:
-    """Factory: costruisce il modello dal nome ('espcn' o 'srcnn')."""
+    """Factory: build the model from its name ('espcn' or 'srcnn')."""
     name = name.lower()
     if name == "espcn":
         return ESPCN(scale=scale, channels=channels)
     if name == "srcnn":
         return SRCNN(scale=scale, channels=channels)
-    raise ValueError(f"Modello sconosciuto: {name!r}. Usa 'espcn' o 'srcnn'.")
+    raise ValueError(f"Unknown model: {name!r}. Use 'espcn' or 'srcnn'.")

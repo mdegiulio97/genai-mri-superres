@@ -1,15 +1,15 @@
-"""Super-risoluzione ×2 su MRI cerebrale T1w REALE (OpenNeuro ds007116) — ESPCN vs bicubico.
+"""×2 super-resolution on REAL T1w brain MRI (OpenNeuro ds007116) — ESPCN vs bicubic.
 
-HR = slice di un volume T1w reale; LR = degradazione bicubica. Si addestra ESPCN
-sulle slice di un soggetto e si valuta su un soggetto **held-out** (mai visto):
-PSNR e SSIM della SR vs baseline bicubica.
+HR = slices of a real T1w volume; LR = bicubic degradation. ESPCN is trained on
+the slices of one subject and evaluated on a **held-out** subject (never seen):
+PSNR and SSIM of SR vs the bicubic baseline.
 
-Produce:
+Produces:
 - results/brain_metrics.json
-- results/brain_examples.png       (LR bicubico vs SR vs HR su slice reali)
-- results/brain_psnr_hist.png      (distribuzione PSNR: SR vs bicubico)
+- results/brain_examples.png       (bicubic LR vs SR vs HR on real slices)
+- results/brain_psnr_hist.png      (PSNR distribution: SR vs bicubic)
 
-Uso:
+Usage:
     uv run python scripts/download_brain.py
     uv run python scripts/evaluate_brain.py
 """
@@ -54,7 +54,7 @@ def main() -> None:
     train_path = DATA / "train_T1w.nii.gz"
     test_path = DATA / "test_T1w.nii.gz"
     if not train_path.exists() or not test_path.exists():
-        raise SystemExit("Dati assenti. Esegui prima:  uv run python scripts/download_brain.py")
+        raise SystemExit("Data missing. First run:  uv run python scripts/download_brain.py")
 
     RESULTS.mkdir(exist_ok=True)
     torch.manual_seed(0)
@@ -63,8 +63,8 @@ def main() -> None:
 
     hr_train = load_brain_slices(train_path, scale=SCALE, max_slices=args.max_train, crop_size=args.crop)
     hr_test = load_brain_slices(test_path, scale=SCALE, max_slices=args.max_test, crop_size=args.crop)
-    print(f"Train HR: {tuple(hr_train.shape)} (soggetto sub-19861)")
-    print(f"Test  HR: {tuple(hr_test.shape)} (soggetto held-out sub-138950)")
+    print(f"Train HR: {tuple(hr_train.shape)} (subject sub-19861)")
+    print(f"Test  HR: {tuple(hr_test.shape)} (held-out subject sub-138950)")
 
     lr_train = downsample(hr_train, scale=SCALE)
     lr_test = downsample(hr_test, scale=SCALE)
@@ -98,44 +98,44 @@ def main() -> None:
     }
     res["sr_beats_bicubic"] = bool(res["delta"]["psnr"] > 0 and res["delta"]["ssim"] > 0)
     (RESULTS / "brain_metrics.json").write_text(json.dumps(res, indent=2))
-    print(f"\nPSNR  SR={res['espcn']['psnr']:.2f} dB  bicubico={res['bicubic']['psnr']:.2f} dB  "
+    print(f"\nPSNR  SR={res['espcn']['psnr']:.2f} dB  bicubic={res['bicubic']['psnr']:.2f} dB  "
           f"(delta {res['delta']['psnr']:+.2f})")
-    print(f"SSIM  SR={res['espcn']['ssim']:.4f}  bicubico={res['bicubic']['ssim']:.4f}  "
+    print(f"SSIM  SR={res['espcn']['ssim']:.4f}  bicubic={res['bicubic']['ssim']:.4f}  "
           f"(delta {res['delta']['ssim']:+.4f})")
 
-    # --- Figura 1: esempi LR-bicubico / SR / HR ---
+    # --- Figure 1: examples bicubic LR / SR / HR ---
     n_show = min(3, hr_test.shape[0])
     pick = np.linspace(0, hr_test.shape[0] - 1, n_show).round().astype(int)
     fig, axes = plt.subplots(n_show, 3, figsize=(9, 3 * n_show))
     axes = np.atleast_2d(axes)
     for row, i in enumerate(pick):
         for col, (img, title) in enumerate(
-            ((bicubic[i, 0], "Bicubico"), (sr[i, 0], "SR (ESPCN)"), (hr_test[i, 0], "HR reale"))
+            ((bicubic[i, 0], "Bicubic"), (sr[i, 0], "SR (ESPCN)"), (hr_test[i, 0], "Real HR"))
         ):
             axes[row, col].imshow(img.numpy(), cmap="gray", vmin=0, vmax=1)
             if row == 0:
                 axes[row, col].set_title(title)
             axes[row, col].axis("off")
-    fig.suptitle("Super-risoluzione ×2 su MRI cerebrale T1w reale (ds007116, CC0)")
+    fig.suptitle("×2 super-resolution on real T1w brain MRI (ds007116, CC0)")
     fig.tight_layout()
     fig.savefig(RESULTS / "brain_examples.png", dpi=120)
     plt.close(fig)
 
-    # --- Figura 2: istogramma PSNR ---
+    # --- Figure 2: PSNR histogram ---
     p_sr = psnr_per_image(sr, hr_test)
     p_bi = psnr_per_image(bicubic, hr_test)
     fig2, ax = plt.subplots(figsize=(7, 4))
     bins = np.linspace(min(p_sr.min(), p_bi.min()), max(p_sr.max(), p_bi.max()), 20)
-    ax.hist(p_bi, bins=bins, alpha=0.6, label=f"Bicubico (μ={p_bi.mean():.2f} dB)")
+    ax.hist(p_bi, bins=bins, alpha=0.6, label=f"Bicubic (μ={p_bi.mean():.2f} dB)")
     ax.hist(p_sr, bins=bins, alpha=0.6, label=f"SR ESPCN (μ={p_sr.mean():.2f} dB)")
     ax.set_xlabel("PSNR (dB)")
-    ax.set_ylabel("n. slice")
-    ax.set_title("PSNR per slice — soggetto held-out")
+    ax.set_ylabel("Number of slices")
+    ax.set_title("Per-slice PSNR — held-out subject")
     ax.legend()
     fig2.tight_layout()
     fig2.savefig(RESULTS / "brain_psnr_hist.png", dpi=120)
     plt.close(fig2)
-    print("Salvati: brain_metrics.json, brain_examples.png, brain_psnr_hist.png")
+    print("Saved: brain_metrics.json, brain_examples.png, brain_psnr_hist.png")
 
 
 if __name__ == "__main__":

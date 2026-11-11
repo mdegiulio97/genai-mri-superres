@@ -1,36 +1,36 @@
-# Scorciatoie per i comandi uv del progetto (vedi README, sezione Sviluppo).
-# Ogni target avvolge il comando uv reale gia documentato nel README.
+# Shortcuts for the project's uv commands (see README, Development section).
+# Each target wraps the actual uv command already documented in the README.
 
 .DEFAULT_GOAL := help
 
 .PHONY: help setup data train test lint app all
 
-help: ## Mostra questo elenco di target
-	@echo "Target disponibili:"
-	@echo "  setup  - installa le dipendenze (uv sync --extra dev)"
-	@echo "  data   - scarica il dataset BloodMNIST (scripts/download_data.py)"
-	@echo "  train  - addestra il modello ESPCN (scripts/train.py)"
-	@echo "  test   - esegue la suite pytest offline (uv run pytest -q)"
-	@echo "  lint   - esegue ruff (uv run ruff check .)"
-	@echo "  app    - avvia la demo Streamlit (app/main.py)"
+help: ## Show this list of targets
+	@echo "Available targets:"
+	@echo "  setup  - install dependencies (uv sync --extra dev)"
+	@echo "  data   - download the BloodMNIST dataset (scripts/download_data.py)"
+	@echo "  train  - train the ESPCN model (scripts/train.py)"
+	@echo "  test   - run the offline pytest suite (uv run pytest -q)"
+	@echo "  lint   - run ruff (uv run ruff check .)"
+	@echo "  app    - start the Streamlit demo (app/main.py)"
 	@echo "  all    - setup + lint + test"
 
-setup: ## Installa le dipendenze di runtime e di sviluppo
+setup: ## Install runtime and development dependencies
 	uv sync --extra dev
 
-data: ## Scarica il dataset BloodMNIST (idempotente)
+data: ## Download the BloodMNIST dataset (idempotent)
 	uv run python scripts/download_data.py
 
-train: ## Addestra il modello ESPCN -> results/model.pt
+train: ## Train the ESPCN model -> results/model.pt
 	uv run python scripts/train.py
 
-test: ## Esegue la suite di test offline
+test: ## Run the offline test suite
 	uv run pytest -q
 
-lint: ## Esegue il linter ruff sul progetto
+lint: ## Run the ruff linter on the project
 	uv run ruff check .
 
-app: ## Avvia la demo interattiva Streamlit
+app: ## Start the interactive Streamlit demo
 	uv run streamlit run app/main.py
 
-all: setup lint test ## Setup, lint e test in sequenza
+all: setup lint test ## Setup, lint and test in sequence
