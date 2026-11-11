@@ -1,7 +1,7 @@
-"""srmri — super-risoluzione image-to-image di immagini mediche 2D.
+"""srmri — image-to-image super-resolution of 2D medical images.
 
-Rete generativa convoluzionale compatta (ESPCN/SRCNN) addestrata su MedMNIST v2,
-confrontata con la baseline bicubica tramite PSNR/SSIM.
+Compact convolutional generative network (ESPCN/SRCNN) trained on MedMNIST v2,
+compared with the bicubic baseline through PSNR/SSIM.
 """
 
 from __future__ import annotations

@@ -1,6 +1,6 @@
-"""Scarica il dataset MedMNIST (idempotente).
+"""Download the MedMNIST dataset (idempotent).
 
-Esempio:
+Example:
     uv run python scripts/download_data.py
     uv run python scripts/download_data.py --flag bloodmnist --size 64
 """
@@ -18,16 +18,16 @@ from srmri.data import DEFAULT_FLAG, DEFAULT_HR_SIZE, load_hr_split  # noqa: E40
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Scarica MedMNIST (idempotente).")
-    parser.add_argument("--flag", default=DEFAULT_FLAG, help="dataset MedMNIST")
-    parser.add_argument("--size", type=int, default=DEFAULT_HR_SIZE, help="risoluzione HR")
+    parser = argparse.ArgumentParser(description="Download MedMNIST (idempotent).")
+    parser.add_argument("--flag", default=DEFAULT_FLAG, help="MedMNIST dataset")
+    parser.add_argument("--size", type=int, default=DEFAULT_HR_SIZE, help="HR resolution")
     args = parser.parse_args()
 
-    print(f"Scarico/verifico MedMNIST flag={args.flag} size={args.size} ...")
+    print(f"Downloading/checking MedMNIST flag={args.flag} size={args.size} ...")
     for split in ("train", "val", "test"):
         t = load_hr_split(split, flag=args.flag, hr_size=args.size, download=True)
-        print(f"  split={split:5s} -> tensore HR {tuple(t.shape)} in [{t.min():.2f},{t.max():.2f}]")
-    print("Fatto. I file .npz sono in", ROOT / "data")
+        print(f"  split={split:5s} -> HR tensor {tuple(t.shape)} in [{t.min():.2f},{t.max():.2f}]")
+    print("Done. The .npz files are in", ROOT / "data")
 
 
 if __name__ == "__main__":

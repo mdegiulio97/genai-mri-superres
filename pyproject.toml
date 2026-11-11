@@ -1,7 +1,7 @@
 [project]
 name = "genai-mri-superres"
 version = "0.1.0"
-description = "Super-risoluzione image-to-image di immagini mediche 2D con CNN generativa compatta (ESPCN/SRCNN) su MedMNIST"
+description = "Image-to-image super-resolution of 2D medical images with a compact generative CNN (ESPCN/SRCNN) on MedMNIST BloodMNIST, plus a real brain MRI track"
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
@@ -35,14 +35,14 @@ packages = ["src/srmri"]
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-# I notebook usano uno stile a celle (statement compatti con ';' per le figure):
-# esclusi dal lint per non snaturarli.
+# Notebooks use a cell style (compact statements with ';' for figures):
+# they are excluded from linting to keep that style.
 extend-exclude = ["notebooks"]
 
 [tool.ruff.lint.per-file-ignores]
-# Nei notebook e negli script il pattern sys.path.insert prima degli import
-# del package è intenzionale (E402); i moduli scientifici vanno importati
-# dopo aver configurato il backend matplotlib.
+# In notebooks and scripts, sys.path.insert before the package imports is
+# intentional (E402); scientific modules must be imported after the
+# matplotlib backend has been configured.
 "*.ipynb" = ["E402"]
 "scripts/*.py" = ["E402"]
 

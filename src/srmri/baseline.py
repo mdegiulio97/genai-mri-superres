@@ -1,6 +1,6 @@
-"""Baseline di super-risoluzione: interpolazione bicubica.
+"""Super-resolution baseline: bicubic interpolation.
 
-È il riferimento "non-learned" contro cui si confronta la rete neurale.
+This is the "non-learned" reference against which the neural network is compared.
 """
 
 from __future__ import annotations
@@ -11,5 +11,5 @@ from .degrade import upsample
 
 
 def bicubic_sr(lr: torch.Tensor, scale: int = 2) -> torch.Tensor:
-    """Super-risoluzione bicubica: upscala LR -> HR del fattore ``scale``."""
+    """Bicubic super-resolution: upscale LR -> HR by a factor of ``scale``."""
     return upsample(lr, scale=scale)

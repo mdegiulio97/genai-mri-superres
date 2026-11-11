@@ -1,8 +1,8 @@
-"""Loop di training per la rete di super-risoluzione.
+"""Training loop for the super-resolution network.
 
-Loss di default: L1 (più robusta percettivamente della MSE per la SR; cfr.
-pratica comune post-SRCNN). Supporta anche MSE. Restituisce lo storico delle
-loss per poter verificare la convergenza.
+Default loss: L1 (perceptually more robust than MSE for SR; common practice
+after SRCNN). MSE is also supported. Returns the loss history so that
+convergence can be checked.
 """
 
 from __future__ import annotations
@@ -15,7 +15,7 @@ from torch.utils.data import DataLoader
 
 
 def get_device(prefer: str | None = None) -> torch.device:
-    """Auto-detect del device (cuda se disponibile, altrimenti cpu)."""
+    """Auto-detect the device (cuda if available, otherwise cpu)."""
     if prefer is not None:
         return torch.device(prefer)
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -27,7 +27,7 @@ def _loss_fn(name: str) -> nn.Module:
         return nn.L1Loss()
     if name in ("l2", "mse"):
         return nn.MSELoss()
-    raise ValueError(f"Loss sconosciuta: {name!r}")
+    raise ValueError(f"Unknown loss: {name!r}")
 
 
 def train_one_epoch(
@@ -37,7 +37,7 @@ def train_one_epoch(
     criterion: nn.Module,
     device: torch.device,
 ) -> float:
-    """Esegue un'epoca; ritorna la loss media."""
+    """Run one epoch; return the mean loss."""
     model.train()
     total, n = 0.0, 0
     for lr, hr in loader:
@@ -56,7 +56,7 @@ def train_one_epoch(
 def evaluate_loss(
     model: nn.Module, loader: Iterable, criterion: nn.Module, device: torch.device
 ) -> float:
-    """Loss media su un loader (senza grad)."""
+    """Mean loss over a loader (no grad)."""
     model.eval()
     total, n = 0.0, 0
     for lr, hr in loader:
@@ -78,7 +78,7 @@ def train(
     val_loader: DataLoader | None = None,
     verbose: bool = False,
 ) -> dict:
-    """Addestra il modello; ritorna dict con storico loss e device usato."""
+    """Train the model; return a dict with the loss history and the device used."""
     device = device or get_device()
     model.to(device)
     criterion = _loss_fn(loss)

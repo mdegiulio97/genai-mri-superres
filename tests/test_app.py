@@ -1,8 +1,8 @@
-"""Smoke test dell'app Streamlit (offline, senza training/inferenza pesante).
+"""Smoke test of the Streamlit app (offline, no training or heavy inference).
 
-Verifica che l'app si renderizzi senza eccezioni. Se il checkpoint manca,
-l'app deve mostrare un warning e fermarsi con st.stop() — comunque senza
-sollevare eccezioni.
+Checks that the app renders without exceptions. If the checkpoint is missing,
+the app must show a warning and stop with st.stop(), still without raising
+exceptions.
 """
 
 from __future__ import annotations
@@ -21,10 +21,10 @@ def test_app_runs_without_exception():
 
 
 def test_app_handles_missing_checkpoint_gracefully():
-    """Se non c'è checkpoint, deve esserci un warning e nessuna eccezione."""
+    """Without a checkpoint there must be a warning and no exception."""
     at = AppTest.from_file(str(APP), default_timeout=30)
     at.run()
     assert not at.exception
-    # almeno un messaggio (warning se manca il modello, info se presente)
+    # at least one message (warning if the model is missing, info if present)
     has_message = bool(at.warning) or bool(at.info) or bool(at.button)
     assert has_message

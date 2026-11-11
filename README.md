@@ -1,159 +1,190 @@
 # genai-mri-superres
 
-Super-risoluzione **image-to-image** di immagini mediche 2D tramite una rete
-generativa convoluzionale compatta in PyTorch. Il progetto addestra una CNN di
-super-risoluzione (**ESPCN** / **SRCNN**) a ricostruire un'immagine ad alta
-risoluzione (HR) a partire da una versione a bassa risoluzione (LR) ottenuta per
-degradazione bicubica, e la confronta contro la baseline di interpolazione
-**bicubica** usando le metriche **PSNR** e **SSIM**.
+**Image-to-image** super-resolution of 2D medical images with a compact
+convolutional generative network in PyTorch. The project trains a
+super-resolution CNN (**ESPCN** / **SRCNN**) to reconstruct a high-resolution
+(HR) image from a low-resolution (LR) version obtained by bicubic degradation,
+and compares it against the **bicubic** interpolation baseline using **PSNR**
+and **SSIM**.
 
-L'inquadramento "GenAI" è la generazione condizionata image-to-image: la rete
-genera i dettagli ad alta frequenza mancanti nell'immagine LR. Un'estensione
-naturale (non implementata qui per restare eseguibile su CPU/GPU entry-level) è
-sostituire la CNN con un modello a diffusione condizionata (es. SR3,
-Saharia et al. 2022, arXiv:2104.07636).
+The project has two tracks:
 
-## Dati
+- **Benchmark track (BloodMNIST).** The main benchmark uses BloodMNIST from
+  MedMNIST v2, which contains **blood-cell microscopy images, not MRI**.
+- **Real brain MRI track (OpenNeuro ds007116).** A separate track applies the
+  same method to real T1w brain MRI slices, with evaluation on a held-out
+  subject. This is the only MRI result in the repository.
+
+The "GenAI" framing refers to conditional image-to-image generation: the network
+generates the high-frequency detail missing from the LR image. A natural
+extension (not implemented here, to keep the project runnable on CPU or an
+entry-level GPU) is to replace the CNN with a conditional diffusion model (e.g.
+SR3, Saharia et al. 2022, arXiv:2104.07636).
+
+## Data
 
 - **MedMNIST v2** (Yang et al., *Scientific Data* 2023,
   DOI [10.1038/s41597-022-01721-8](https://doi.org/10.1038/s41597-022-01721-8),
-  licenza CC BY 4.0). Auto-scaricabile, nessuna registrazione.
-- Dataset usato: **BloodMNIST** alla risoluzione **HR = 64×64** (parametro
-  `size=64` della libreria `medmnist`). Le immagini LR (32×32) sono ottenute per
-  downsample bicubico ×2; la rete impara a riportarle a 64×64.
-- Le immagini sono convertite in **scala di grigi** (1 canale) per concentrare il
-  task sulla ricostruzione strutturale, coerentemente con i protocolli di
-  super-risoluzione classici (SRCNN/ESPCN operano sul canale di luminanza).
+  CC BY 4.0 license). Downloaded automatically, no registration required.
+- Dataset used: **BloodMNIST** at **HR = 64×64** (parameter `size=64` of the
+  `medmnist` library). The LR images (32×32) are obtained by ×2 bicubic
+  downsampling; the network learns to bring them back to 64×64.
+- Images are converted to **grayscale** (1 channel) so that the task focuses on
+  structural reconstruction, in line with classic super-resolution protocols
+  (SRCNN/ESPCN operate on the luminance channel).
 
-## Architettura
+## Data and licenses
+
+- **MedMNIST v2, BloodMNIST** — Yang J. et al., *MedMNIST v2 – A large-scale
+  lightweight benchmark for 2D and 3D biomedical image classification*,
+  *Scientific Data* 10:41 (2023),
+  DOI [10.1038/s41597-022-01721-8](https://doi.org/10.1038/s41597-022-01721-8).
+  License: **CC BY 4.0**. Downloaded at runtime by the `medmnist` library
+  (`scripts/download_data.py`); not committed to this repository.
+  BloodMNIST contains blood-cell microscopy images, so the benchmark track
+  measures super-resolution on microscopy images, not on MRI.
+- **OpenNeuro ds007116** ("Penn LEAD"), T1w brain MRI — License: **CC0**.
+  Downloaded by `scripts/download_brain.py` into `data/brain/`, which is
+  git-ignored; the data are not committed to this repository.
+  This dataset is used only by the separate real brain MRI track.
+
+## Architecture
 
 - **ESPCN** (default): Shi et al., *Real-Time Single Image and Video
   Super-Resolution Using an Efficient Sub-Pixel CNN*, CVPR 2016,
-  arXiv:[1609.05158](https://arxiv.org/abs/1609.05158). Estrazione di feature a
-  piena risoluzione LR + upscaling finale tramite **sub-pixel convolution**
-  (`PixelShuffle`), efficiente perché l'upscaling avviene solo alla fine.
-- **SRCNN** (alternativa): Dong et al., *Image Super-Resolution Using Deep
+  arXiv:[1609.05158](https://arxiv.org/abs/1609.05158). Features are extracted
+  at the LR resolution, followed by a final upscaling step with **sub-pixel
+  convolution** (`PixelShuffle`); this is efficient because upscaling happens
+  only at the end.
+- **SRCNN** (alternative): Dong et al., *Image Super-Resolution Using Deep
   Convolutional Networks*, TPAMI 2016,
   DOI [10.1109/TPAMI.2015.2439281](https://doi.org/10.1109/TPAMI.2015.2439281).
-  Lavora su un'immagine già upscalata bicubicamente e ne raffina i dettagli.
+  Works on an image that has already been bicubically upscaled and refines its
+  details.
 
-## Struttura
+## Layout
 
 ```
 genai-mri-superres/
-├── app/main.py                 # Streamlit: LR → SR vs bicubica, PSNR/SSIM
+├── app/main.py                 # Streamlit: LR → SR vs bicubic, PSNR/SSIM
 ├── src/srmri/
-│   ├── data.py                 # MedMNIST HR + fake loader sintetico
+│   ├── data.py                 # MedMNIST HR + synthetic fake loader
 │   ├── model.py                # ESPCN / SRCNN
-│   ├── degrade.py              # downsample/upsample bicubico
-│   ├── train.py                # loop di training (L1/MSE)
+│   ├── degrade.py              # bicubic downsample/upsample
+│   ├── train.py                # training loop (L1/MSE)
 │   ├── metrics.py              # PSNR, SSIM
-│   └── baseline.py             # upscaling bicubico
-├── scripts/download_data.py    # scarica MedMNIST (idempotente)
-├── scripts/train.py            # addestra → results/model.pt
-├── scripts/evaluate.py         # SR vs bicubica → results/metrics.json + figure
-├── tests/                      # pytest offline (tensori sintetici)
+│   ├── baseline.py             # bicubic upscaling
+│   └── real_brain.py           # 2D slices from real T1w brain MRI (NIfTI)
+├── scripts/download_data.py    # downloads MedMNIST (idempotent)
+├── scripts/train.py            # trains → results/model.pt
+├── scripts/evaluate.py         # SR vs bicubic → results/metrics.json + figures
+├── scripts/download_brain.py   # downloads two T1w volumes from OpenNeuro ds007116
+├── scripts/evaluate_brain.py   # brain MRI track → results/brain_*
+├── tests/                      # offline pytest (synthetic tensors)
 ├── notebooks/01_validation.ipynb
-├── results/                    # figure + metrics.json
-└── data/                       # dataset scaricato (non committato)
+├── report/brain_superres.md    # short report on the brain MRI track
+├── results/                    # figures + metrics JSON files
+└── data/                       # downloaded datasets (not committed)
 ```
 
-## Uso
+## Usage
 
 ```bash
-uv sync --extra dev                       # installa dipendenze (torch è pesante)
-uv run python scripts/download_data.py    # scarica BloodMNIST size=64
+uv sync --extra dev                       # install dependencies (torch is large)
+uv run python scripts/download_data.py    # download BloodMNIST size=64
 uv run python scripts/train.py --epochs 30
-uv run python scripts/evaluate.py         # metriche + figure
-uv run streamlit run app/main.py          # demo interattiva
+uv run python scripts/evaluate.py         # metrics + figures
+uv run streamlit run app/main.py          # interactive demo
 ```
 
-## Risultati
+## Results (benchmark track, BloodMNIST)
 
-Valutazione su test set BloodMNIST (HR 64×64, scala di grigi, ×2), modello ESPCN
-addestrato 30 epoche su CPU. Numeri reali rigenerati da `scripts/evaluate.py`
-(`results/metrics.json`):
+Evaluation on the BloodMNIST test set (blood-cell microscopy, HR 64×64,
+grayscale, ×2), ESPCN model trained for 30 epochs on CPU. Numbers produced by
+`scripts/evaluate.py` (`results/metrics.json`):
 
-| Metodo            | PSNR (dB) | SSIM   |
+| Method            | PSNR (dB) | SSIM   |
 |-------------------|-----------|--------|
-| Bicubica          | 34.47     | 0.9506 |
+| Bicubic           | 34.47     | 0.9506 |
 | **ESPCN (SR)**    | **36.65** | **0.9623** |
-| **Δ (SR − bicubica)** | **+2.17** | **+0.0117** |
+| **Δ (SR − bicubic)** | **+2.17** | **+0.0117** |
 
-(test set BloodMNIST, 1000 immagini, HR 64×64 grigi, ×2, ESPCN 30 epoche su CPU.)
+(BloodMNIST test set, 1000 images, HR 64×64 grayscale, ×2, ESPCN 30 epochs on CPU.)
 
-La rete SR **batte** la baseline bicubica sia in PSNR (+2.17 dB) sia in SSIM su
-tutto il test set. Figure in `results/`: esempi *before/after* e istogramma del
-PSNR per-immagine (SR vs bicubica). Numeri e figure sono rigenerati
-automaticamente da `scripts/evaluate.py` (`results/metrics.json`).
+The SR network **beats** the bicubic baseline in both PSNR (+2.17 dB) and SSIM,
+averaged over the test set. Figures in `results/`: *before/after* examples and a
+histogram of per-image PSNR (SR vs bicubic). Numbers and figures are regenerated
+by `scripts/evaluate.py` (`results/metrics.json`).
 
-> **Nota metodologica (dying ReLU).** Una prima versione dell'ESPCN usava `ReLU`
-> nel feature extractor: con learning rate tipici e batch grandi le attivazioni
-> "morivano" (output a zero, gradiente nullo), il residuo collassava e la rete
-> si limitava a **eguagliare** la bicubica (Δ ≈ 0, loss congelata). Il problema è
-> stato diagnosticato misurando la frazione di attivazioni nulle (= 1.000) e
-> risolto sostituendo `ReLU` con `LeakyReLU` (pendenza negativa non nulla → il
-> gradiente resta vivo). Un test di regressione (`tests/test_pipeline.py`)
-> riproduce il guasto offline e ne previene il ritorno.
+> **Methodological note (dying ReLU).** A first version of ESPCN used `ReLU` in
+> the feature extractor: with typical learning rates and large batches the
+> activations "died" (zero output, zero gradient), the residual collapsed and
+> the network only **matched** bicubic (Δ ≈ 0, frozen loss). The problem was
+> diagnosed by measuring the fraction of zero activations (= 1.000) and fixed by
+> replacing `ReLU` with `LeakyReLU` (non-zero negative slope, so the gradient
+> stays alive). A regression test (`tests/test_pipeline.py`) reproduces the
+> failure offline and prevents it from coming back.
 
-## Track MRI cerebrale reale (OpenNeuro ds007116, CC0)
+## Real brain MRI track (OpenNeuro ds007116, CC0)
 
-Oltre al benchmark MedMNIST, il progetto applica la super-risoluzione a **MRI
-cerebrale T1w reale** (OpenNeuro **ds007116** "Penn LEAD", CC0). Le immagini HR
-sono slice di volumi T1w reali; la degradazione HR→LR resta simulata (bicubica),
-come standard nei lavori di SR. Il training è su un soggetto e la valutazione su un
-**soggetto held-out** (mai visto), per misurare la generalizzazione cross-soggetto.
+Besides the BloodMNIST benchmark, the project applies super-resolution to
+**real T1w brain MRI** (OpenNeuro **ds007116** "Penn LEAD", CC0). The HR images
+are slices of real T1w volumes; the HR→LR degradation is still simulated
+(bicubic), as is standard in SR work. Training uses one subject and evaluation
+uses a **held-out subject** (never seen during training), to measure
+cross-subject generalization.
 
 ```bash
-uv run python scripts/download_brain.py     # ~15 MB da S3 (dati gitignorati)
-uv run python scripts/evaluate_brain.py     # ESPCN vs bicubico → results/brain_*
+uv run python scripts/download_brain.py     # ~15 MB from S3 (data git-ignored)
+uv run python scripts/evaluate_brain.py     # ESPCN vs bicubic → results/brain_*
 ```
 
-Numeri reali da `results/brain_metrics.json` (soggetto held-out sub-138950, 32 slice
-176×192, ×2, ESPCN 40 epoche su CPU):
+Numbers from `results/brain_metrics.json` (held-out subject sub-138950, 32
+slices 176×192, ×2, ESPCN 40 epochs on CPU):
 
-| Metodo | PSNR (dB) | SSIM |
+| Method | PSNR (dB) | SSIM |
 |---|---|---|
-| Bicubico | 27.63 | 0.9201 |
+| Bicubic | 27.63 | 0.9201 |
 | **ESPCN (SR)** | **28.16** | **0.9271** |
-| **Δ (SR − bicubico)** | **+0.52** | **+0.0070** |
+| **Δ (SR − bicubic)** | **+0.52** | **+0.0070** |
 
-Su anatomia cerebrale reale e su un soggetto mai visto la SR **batte** comunque la
-bicubica su entrambe le metriche; il guadagno è più contenuto del benchmark
-MedMNIST — onesto, vista la generalizzazione cross-soggetto e l'allenamento su un
-solo cervello. Figure: `results/brain_examples.png`, `results/brain_psnr_hist.png`.
-Report con citazioni: [`report/brain_superres.md`](report/brain_superres.md).
+On real brain anatomy and on an unseen subject, SR still **beats** bicubic on
+both metrics; the gain is smaller than on the BloodMNIST benchmark, which is
+expected given the cross-subject evaluation and training on a single brain.
+Figures: `results/brain_examples.png`, `results/brain_psnr_hist.png`.
+Report with citations: [`report/brain_superres.md`](report/brain_superres.md).
 
-## Test
+## Tests
 
 ```bash
 uv run ruff check .
 uv run pytest -q
 ```
 
-I test sono **offline** e veloci: usano immagini sintetiche (tensori), non
-scaricano MedMNIST. Verificano shape di degradazione/ricostruzione, forward dei
-modelli, PSNR alto per immagini identiche, riduzione della loss in training e
-robustezza dello smoke test dell'app Streamlit.
+The tests are **offline** and fast: they use synthetic images (tensors) and do
+not download MedMNIST or OpenNeuro data. They check degradation/reconstruction
+shapes, model forward passes, high PSNR for identical images, loss reduction
+during training, the brain slice loader on a small synthetic NIfTI volume, and
+a smoke test of the Streamlit app.
 
-## Sviluppo
+## Development
 
-Per comodità è incluso un `Makefile` che raccoglie i comandi più frequenti. I
-target sono semplici **scorciatoie** dei comandi `uv` documentati sopra (non
-introducono logica nuova): richiedono `make` e `uv` installati.
+A `Makefile` collects the most common commands. The targets are plain
+**shortcuts** for the `uv` commands documented above (they add no new logic);
+they require `make` and `uv` to be installed.
 
-| Comando       | Scorciatoia di                              | Descrizione                                             |
+| Command       | Shortcut for                                | Description                                            |
 |---------------|---------------------------------------------|--------------------------------------------------------|
-| `make help`   | —                                           | Elenca i target disponibili (default).                 |
-| `make setup`  | `uv sync --extra dev`                       | Installa le dipendenze di runtime e di sviluppo.       |
-| `make data`   | `uv run python scripts/download_data.py`    | Scarica il dataset BloodMNIST (idempotente).           |
-| `make train`  | `uv run python scripts/train.py`            | Addestra il modello ESPCN → `results/model.pt`.        |
-| `make test`   | `uv run pytest -q`                          | Esegue la suite di test offline.                       |
-| `make lint`   | `uv run ruff check .`                        | Esegue il linter ruff sul progetto.                    |
-| `make app`    | `uv run streamlit run app/main.py`          | Avvia la demo interattiva Streamlit.                   |
-| `make all`    | `setup` + `lint` + `test`                   | Prepara l'ambiente ed esegue lint e test in sequenza.  |
+| `make help`   | —                                           | Lists the available targets (default).                 |
+| `make setup`  | `uv sync --extra dev`                       | Installs runtime and development dependencies.         |
+| `make data`   | `uv run python scripts/download_data.py`    | Downloads the BloodMNIST dataset (idempotent).         |
+| `make train`  | `uv run python scripts/train.py`            | Trains the ESPCN model → `results/model.pt`.           |
+| `make test`   | `uv run pytest -q`                          | Runs the offline test suite.                           |
+| `make lint`   | `uv run ruff check .`                       | Runs the ruff linter on the project.                   |
+| `make app`    | `uv run streamlit run app/main.py`          | Starts the interactive Streamlit demo.                 |
+| `make all`    | `setup` + `lint` + `test`                   | Sets up the environment, then runs lint and tests.     |
 
-## Riferimenti
+## References
 
 1. Shi et al., *Real-Time Single Image and Video Super-Resolution Using an
    Efficient Sub-Pixel Convolutional Neural Network*, CVPR 2016.
@@ -166,8 +197,11 @@ introducono logica nuova): richiedono `make` e `uv` installati.
    DOI [10.1038/s41597-022-01721-8](https://doi.org/10.1038/s41597-022-01721-8)
 4. Saharia et al., *Image Super-Resolution via Iterative Refinement* (SR3), 2022.
    arXiv:[2104.07636](https://arxiv.org/abs/2104.07636)
+5. OpenNeuro dataset **ds007116** "Penn LEAD", CC0.
+   [https://openneuro.org/datasets/ds007116](https://openneuro.org/datasets/ds007116)
 
-## Licenza
+## License
 
-Codice: MIT © Michele De Giulio 2026 (vedi `LICENSE`). Il dataset MedMNIST v2 è
-distribuito sotto licenza CC BY 4.0 dai rispettivi autori; rispettarne i termini.
+Code: MIT © Michele De Giulio 2026 (see `LICENSE`). The MedMNIST v2 dataset is
+distributed under the CC BY 4.0 license by its authors, and OpenNeuro ds007116
+under CC0; follow their terms.

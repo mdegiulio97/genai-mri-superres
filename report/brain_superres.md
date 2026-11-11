@@ -1,55 +1,57 @@
-# Super-risoluzione ×2 di MRI cerebrale T1w reale: ESPCN vs bicubico (soggetto held-out)
+# ×2 super-resolution of real T1w brain MRI: ESPCN vs bicubic (held-out subject)
 
-Mini-report del *track dati reali* di `genai-mri-superres`. Estende la demo su
-benchmark (MedMNIST) a **MRI cerebrale reale**, valutando la generalizzazione su un
-soggetto mai visto.
+Short report on the *real-data track* of `genai-mri-superres`. It extends the
+benchmark demo (MedMNIST BloodMNIST, blood-cell microscopy) to **real brain MRI**,
+evaluating generalization on a subject never seen during training.
 
-## Dati
+## Data
 
-OpenNeuro **ds007116** ("Penn LEAD"), licenza **CC0** [3]. Volumi anatomici **T1w**
-(defaced) a 3T. Le immagini ad alta risoluzione (HR) sono slice 2D estratte e
-normalizzate in [0, 1]; la versione a bassa risoluzione (LR) è ottenuta per
-**degradazione bicubica** ×2 (super-risoluzione *simulata*, come standard in
-letteratura). **Training** sulle slice del soggetto `sub-19861`, **test** su un
-soggetto **held-out** (`sub-138950`, mai visto) — niente leakage tra train e test.
-I dati grezzi non sono ridistribuiti: si scaricano con `scripts/download_brain.py`.
+OpenNeuro **ds007116** ("Penn LEAD"), **CC0** license [3]. Anatomical **T1w**
+volumes (defaced) at 3T. The high-resolution (HR) images are 2D slices extracted
+and normalized to [0, 1]; the low-resolution (LR) version is obtained by ×2
+**bicubic degradation** (*simulated* super-resolution, as is standard in the
+literature). **Training** on the slices of subject `sub-19861`, **test** on a
+**held-out** subject (`sub-138950`, never seen), so there is no leakage between
+train and test. The raw data are not redistributed: they are downloaded with
+`scripts/download_brain.py`.
 
-## Metodo
+## Method
 
-- **ESPCN** [1]: estrae feature a risoluzione LR e fa l'upscaling con sub-pixel
-  convolution; qui in variante a **residuo** sopra la bicubica (l'ultimo strato è
-  inizializzato a zero → parte dalla qualità bicubica e impara solo le correzioni).
-- **Baseline**: upscaling **bicubico**.
-- Metriche: **PSNR** e **SSIM** (skimage), su 32 slice del soggetto held-out.
+- **ESPCN** [1]: extracts features at LR resolution and upscales with sub-pixel
+  convolution; here in a **residual** variant on top of bicubic (the last layer is
+  initialized to zero, so training starts from bicubic quality and learns only the
+  corrections).
+- **Baseline**: **bicubic** upscaling.
+- Metrics: **PSNR** and **SSIM** (skimage), on 32 slices of the held-out subject.
 
-## Risultati
+## Results
 
-Numeri reali da `results/brain_metrics.json` (soggetto held-out, 32 slice 176×192,
-×2, ESPCN 40 epoche su CPU, seed fisso):
+Numbers from `results/brain_metrics.json` (held-out subject, 32 slices 176×192,
+×2, ESPCN 40 epochs on CPU, fixed seed):
 
-| Metodo | PSNR (dB) | SSIM |
+| Method | PSNR (dB) | SSIM |
 |---|---|---|
-| Bicubico | 27.63 | 0.9201 |
+| Bicubic | 27.63 | 0.9201 |
 | **ESPCN (SR)** | **28.16** | **0.9271** |
-| **Δ (SR − bicubico)** | **+0.52** | **+0.0070** |
+| **Δ (SR − bicubic)** | **+0.52** | **+0.0070** |
 
-Su anatomia cerebrale reale e su un soggetto mai visto, la SR **batte** la bicubica
-su entrambe le metriche. Il guadagno è più contenuto del benchmark MedMNIST
-(+2.17 dB): risultato **onesto**, atteso quando si addestra su un solo cervello e si
-valuta cross-soggetto. Figure: `results/brain_examples.png` (bicubico/SR/HR),
-`results/brain_psnr_hist.png` (distribuzione PSNR per slice).
+On real brain anatomy and on an unseen subject, SR **beats** bicubic on both
+metrics. The gain is smaller than on the MedMNIST benchmark (+2.17 dB), which is
+expected when training on a single brain and evaluating across subjects.
+Figures: `results/brain_examples.png` (bicubic/SR/HR),
+`results/brain_psnr_hist.png` (per-slice PSNR distribution).
 
-## Limiti
+## Limitations
 
-- **Degradazione simulata** (bicubica): non riproduce la vera degradazione di
-  acquisizione (k-space, rumore, moto).
-- **Un soggetto di training, un soggetto di test**: dimostrazione, non uno studio;
-  serve una coorte per stime robuste.
-- **PSNR/SSIM** non misurano la **fedeltà diagnostica**; la super-risoluzione può
-  introdurre dettagli plausibili ma non reali (rischio in ambito clinico).
-- **Non è uno strumento clinico**: demo di ricerca su dati pubblici CC0.
+- **Simulated degradation** (bicubic): it does not reproduce the real acquisition
+  degradation (k-space, noise, motion).
+- **One training subject, one test subject**: a demonstration, not a study; a
+  cohort is needed for robust estimates.
+- **PSNR/SSIM** do not measure **diagnostic fidelity**; super-resolution can
+  introduce plausible but non-existent details (a risk in clinical settings).
+- **Not a clinical tool**: research demo on public CC0 data.
 
-## Riferimenti
+## References
 
 1. Shi W, Caballero J, Huszár F, et al. *Real-Time Single Image and Video
    Super-Resolution Using an Efficient Sub-Pixel Convolutional Neural Network.* CVPR
@@ -57,5 +59,5 @@ valuta cross-soggetto. Figure: `results/brain_examples.png` (bicubico/SR/HR),
 2. Dong C, Loy CC, He K, Tang X. *Image Super-Resolution Using Deep Convolutional
    Networks.* IEEE TPAMI 2016. DOI:
    [10.1109/TPAMI.2015.2439281](https://doi.org/10.1109/TPAMI.2015.2439281)
-3. OpenNeuro dataset **ds007116** "Penn LEAD", licenza CC0.
+3. OpenNeuro dataset **ds007116** "Penn LEAD", CC0 license.
    [https://openneuro.org/datasets/ds007116](https://openneuro.org/datasets/ds007116)

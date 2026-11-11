@@ -1,8 +1,8 @@
-# Dati: scaricati da medmnist, non committati
+# Data: downloaded at runtime (MedMNIST, OpenNeuro), not committed
 data/
 !data/.gitkeep
 
-# Checkpoint e artefatti pesanti
+# Checkpoints and large artifacts
 *.pt
 *.pth
 *.ckpt
