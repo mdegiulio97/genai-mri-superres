@@ -106,12 +106,12 @@ grayscale, ×2), ESPCN model trained for 30 epochs on CPU. Numbers produced by
 | Method            | PSNR (dB) | SSIM   |
 |-------------------|-----------|--------|
 | Bicubic           | 34.47     | 0.9506 |
-| **ESPCN (SR)**    | **36.65** | **0.9623** |
-| **Δ (SR − bicubic)** | **+2.17** | **+0.0117** |
+| **ESPCN (SR)**    | **36.60** | **0.9620** |
+| **Δ (SR − bicubic)** | **+2.13** | **+0.0114** |
 
 (BloodMNIST test set, 1000 images, HR 64×64 grayscale, ×2, ESPCN 30 epochs on CPU.)
 
-The SR network **beats** the bicubic baseline in both PSNR (+2.17 dB) and SSIM,
+The SR network **beats** the bicubic baseline in both PSNR (+2.13 dB) and SSIM,
 averaged over the test set. Figures in `results/`: *before/after* examples and a
 histogram of per-image PSNR (SR vs bicubic). Numbers and figures are regenerated
 by `scripts/evaluate.py` (`results/metrics.json`).
