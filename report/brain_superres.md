@@ -36,7 +36,7 @@ Numbers from `results/brain_metrics.json` (held-out subject, 32 slices 176×192,
 | **Δ (SR − bicubic)** | **+0.52** | **+0.0070** |
 
 On real brain anatomy and on an unseen subject, SR **beats** bicubic on both
-metrics. The gain is smaller than on the MedMNIST benchmark (+2.17 dB), which is
+metrics. The gain is smaller than on the MedMNIST benchmark (+2.13 dB), which is
 expected when training on a single brain and evaluating across subjects.
 Figures: `results/brain_examples.png` (bicubic/SR/HR),
 `results/brain_psnr_hist.png` (per-slice PSNR distribution).

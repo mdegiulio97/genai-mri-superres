@@ -25,9 +25,9 @@
 ## Metrics (reproducible, `results/metrics.json`, n_test=1000)
 | | SR (ESPCN) | Bicubic |
 |---|---|---|
-| PSNR (dB) | 36.65 | 34.47 |
+| PSNR (dB) | 36.60 | 34.47 |
 | SSIM | 0.962 | 0.951 |
-- Gain: **+2.17 dB PSNR**, +0.0117 SSIM.
+- Gain: **+2.13 dB PSNR**, +0.0114 SSIM.
 
 ## Methodological note (documented debugging)
 With standard ReLU the network fell into **dying ReLU** (zero residual, so the SR output copied
