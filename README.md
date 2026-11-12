@@ -1,5 +1,7 @@
 # genai-mri-superres
 
+[![CI](https://github.com/mdegiulio97/genai-mri-superres/actions/workflows/ci.yml/badge.svg)](https://github.com/mdegiulio97/genai-mri-superres/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 **Image-to-image** super-resolution of 2D medical images with a compact
 convolutional generative network in PyTorch. The project trains a
 super-resolution CNN (**ESPCN** / **SRCNN**) to reconstruct a high-resolution
